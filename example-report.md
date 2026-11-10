@@ -1,53 +1,54 @@
-# Threat Intelligence Agent
+# Threat Prioritization Agent
 
 ## Summary
 
-- **advisory:** DEMO-2026-001
-- **scope:** Fictional training lab snapshot
-- **assets examined:** 3
-- **product candidates:** 3
-- **affected version matches:** 1
-- **assessment:** potential\_exposure
+- **threat id:** DEMO-2026-001
+- **assets:** 3
+- **exploitation:** not\_reported
+- **policy:** example-matrix-v1
 
 ## Findings
 
 ### Finding 1
 
-- **asset:** lab-gateway
-- **version:** 2\.4\.1
-- **status:** affected\_version\_match
+- **asset id:** lab-gateway
+- **priority:** urgent\_review
+- **reason:** Affected, internet-exposed asset with high business criticality\.
+- **affected:** yes
 - **exposure:** internet
-- **review priority:** expedite
-- **evidence:** \["inventory:lab-gateway", "https://example\.org/advisories/DEMO-2026-001"\]
+- **criticality:** high
+- **evidence ids:** \["demo-inventory-1", "demo-advisory-1"\]
 
 ### Finding 2
 
-- **asset:** lab-worker
-- **version:** null
-- **status:** version\_unknown
+- **asset id:** lab-worker
+- **priority:** investigate\_exposure
+- **reason:** Affected status is unresolved\.
+- **affected:** unknown
 - **exposure:** internal
-- **review priority:** verify
-- **evidence:** \["inventory:lab-worker", "https://example\.org/advisories/DEMO-2026-001"\]
+- **criticality:** standard
+- **evidence ids:** \[\]
 
 ### Finding 3
 
-- **asset:** lab-updated
-- **version:** 2\.5\.0
-- **status:** version\_not\_listed
+- **asset id:** lab-service
+- **priority:** scheduled\_review
+- **reason:** Affected internal asset with standard criticality; exploitation not reported\.
+- **affected:** yes
 - **exposure:** internal
-- **review priority:** verify
-- **evidence:** \["inventory:lab-updated", "https://example\.org/advisories/DEMO-2026-001"\]
+- **criticality:** standard
+- **evidence ids:** \["demo-inventory-3", "demo-advisory-1"\]
 
 
 ## Limitations
 
-- Exact vendor/product and exact version matching only; no aliases, ranges, backport or reachability analysis\.
-- A listed vulnerable version does not prove exploitability or compromise; a non-listed version is not confirmed safe\.
-- The input snapshot is not independently verified\. Inventory completeness and source freshness are unknown\.
-- Review priority is a transparent example heuristic, not CVSS, SSVC or a remediation SLA\.
+- This is an original illustrative matrix, not CERT/CC SSVC, CVSS or an organizational severity policy\.
+- Input evidence references are preserved but are not retrieved or independently authenticated\.
+- Not reported does not establish that exploitation is absent\. Unknown facts never become a low-risk assumption\.
+- Priorities carry no automatic patch deadline\. Controls, business impact and policy-specific obligations need review\.
 
 ## Next Steps
 
-- Verify advisory scope, version ranges and exploitation evidence against primary sources\.
-- Check runtime version, configuration, reachability and mitigations for each candidate\.
-- Record missing inventory coverage and assign an owner to unresolved exposure\.
+- Validate exposure, exploitation and business-criticality facts with dated evidence\.
+- Have the asset owner assign a remediation target under the applicable policy\.
+- Reassess when exploitation, exposure, evidence quality or control effectiveness changes\.

@@ -2,7 +2,7 @@
 
 ## Input
 
-The root has advisory and inventory objects. advisory requires id, vendor, product, affected_versions (a nonempty list of exact version strings), source and exploitation (observed, not_reported or unknown). inventory requires scope and assets. Each asset requires a unique id, vendor, product, version (string or null), and exposure (internet, internal or unknown). Vendor/product matching ignores case and surrounding whitespace; version matching is exact. An unlisted version is unresolved, not safe.
+The root requires threat_id, exploitation (active/not_reported/unknown), and assets. Each asset requires unique id, affected (yes/no/unknown), exposure (internet/internal/unknown), criticality (high/standard/unknown) and evidence_ids. Known affected states require nonempty references. References are preserved but not dereferenced. Decision order: no→verify non-applicability; unknown→investigate; affected plus active exploitation→urgent; any remaining unknown→resolve facts; internet plus high criticality→urgent; either→expedited; otherwise→scheduled. All outputs require human review.
 
 See [example.json](example.json) for a complete fictional input. All demo identities, indicators, events, products and reputation providers are synthetic. Documentation IPs and example domains are not threat intelligence.
 
@@ -16,6 +16,6 @@ JSON preserves evidence text. Markdown renders evidence as literal escaped text,
 
 ## Example interpretation
 
-One affected-version candidate, one unknown version and one version not listed in the advisory. Overall exposure remains subject to verification.
+An urgent review, an exposure investigation and a scheduled review, each with a stated reason. No patch deadline is fabricated.
 
-Vendor advisories and package maintainers should be the primary source for affected ranges; the demo advisory is fictional.
+The matrix is an original teaching example. Replace it with an approved policy before operational use; it does not implement CERT/CC SSVC.

@@ -10,35 +10,52 @@ class AgentTests(unittest.TestCase):
     def setUp(self):
         self.data = json.loads(Path(__file__).with_name("example.json").read_text())
 
-    def test_example_retains_three_distinct_applicability_states(self):
-        result = analyze(self.data)
-        self.assertEqual(result["summary"]["affected_version_matches"], 1)
+    def test_example_distinguishes_known_and_unknown_exposure(self):
         self.assertEqual(
-            [row["status"] for row in result["findings"]],
-            ["affected_version_match", "version_unknown", "version_not_listed"],
+            [row["priority"] for row in analyze(self.data)["findings"]],
+            ["urgent_review", "investigate_exposure", "scheduled_review"],
         )
 
-    def test_vendor_and_product_case_does_not_hide_a_candidate(self):
-        self.data["inventory"]["assets"][0]["vendor"] = " example vendor "
-        self.assertEqual(analyze(self.data)["summary"]["affected_version_matches"], 1)
+    def test_active_exploitation_escalates_affected_internal_asset(self):
+        self.data["exploitation"] = "active"
+        self.assertEqual(analyze(self.data)["findings"][2]["priority"], "urgent_review")
 
-    def test_empty_inventory_does_not_assert_safety(self):
-        self.data["inventory"]["assets"] = []
-        self.assertEqual(analyze(self.data)["summary"]["assessment"], "inconclusive")
+    def test_missing_facts_never_become_scheduled_review(self):
+        from itertools import product
 
-    def test_missing_version_is_not_interpreted_as_patched(self):
-        self.data["inventory"]["assets"][0]["version"] = None
-        self.assertEqual(analyze(self.data)["findings"][0]["status"], "version_unknown")
+        for exploitation, exposure, criticality in product(
+            ["active", "not_reported", "unknown"],
+            ["internet", "internal", "unknown"],
+            ["high", "standard", "unknown"],
+        ):
+            self.data["exploitation"] = exploitation
+            asset = copy.deepcopy(self.data["assets"][0])
+            asset.update(exposure=exposure, criticality=criticality)
+            self.data["assets"] = [asset]
+            if "unknown" in (exploitation, exposure, criticality):
+                with self.subTest(
+                    exploitation=exploitation,
+                    exposure=exposure,
+                    criticality=criticality,
+                ):
+                    self.assertNotEqual(
+                        analyze(self.data)["findings"][0]["priority"],
+                        "scheduled_review",
+                    )
 
-    def test_empty_affected_versions_is_rejected(self):
-        self.data["advisory"]["affected_versions"] = []
+    def test_non_applicability_requires_evidence(self):
+        self.data["assets"][0].update(affected="no", evidence_ids=[])
         with self.assertRaises(ValueError):
             analyze(self.data)
 
-    def test_duplicate_asset_ids_are_rejected(self):
-        self.data["inventory"]["assets"].append(
-            copy.deepcopy(self.data["inventory"]["assets"][0])
+    def test_unknown_affected_state_is_never_deferred(self):
+        self.data["exploitation"] = "active"
+        self.assertEqual(
+            analyze(self.data)["findings"][1]["priority"], "investigate_exposure"
         )
+
+    def test_unsupported_policy_value_is_rejected(self):
+        self.data["assets"][0]["criticality"] = "probably-low"
         with self.assertRaises(ValueError):
             analyze(self.data)
 

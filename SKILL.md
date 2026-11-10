@@ -1,18 +1,18 @@
 ---
-name: threat-intel-agent
-description: Model-agnostic threat intelligence skill with a local advisory-to-inventory matching tool and synthetic examples.
+name: threat-prioritization-agent
+description: Contextual threat prioritization skill with an explicit example decision matrix, evidence references and unresolved-fact handling.
 ---
 
-# Threat Intelligence Agent
+# Threat Prioritization Agent
 
-Turn an advisory into an evidence-backed exposure review.
+Make remediation priorities explainable and uncertainty explicit.
 
 ## Workflow
 
-1. Identify the advisory, affected product, source dates and the assessment scope. Prefer primary vendor advisories and authoritative exploitation evidence.
-2. Compare the advisory with the supplied asset inventory using agent.py. The helper accepts exact versions only; manually resolve version ranges, packaging and backports with evidence.
-3. Assess runtime presence, configuration, exposure, required attacker access and controls separately. Record what is measured and what is inferred.
-4. Return an exposure assessment with evidence references, missing coverage, confidence reasoning and specific next steps. A version match establishes a candidate, not compromise.
+1. Confirm the specific threat, assessed assets and evidence supporting affected status, exploitation, exposure and criticality.
+2. Use agent.py to apply the documented example matrix. Treat its result as a review queue, not an official SSVC, CVSS, severity or SLA decision.
+3. Investigate unresolved facts and explain how new evidence could change the outcome. A compensating control only changes a real policy assessment when its applicability and effectiveness are verified.
+4. Present per-asset reasoning, evidence gaps, ownership and reassessment triggers. Use the user's actual policy when supplied and make any departure from the example matrix explicit.
 
 ## Local evidence tool
 

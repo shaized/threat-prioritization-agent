@@ -1,86 +1,93 @@
-"""Compare an advisory snapshot with an explicitly scoped inventory."""
+"""Apply a transparent example review-priority matrix to exposure facts."""
 
-from runtime import choice, cli, obj, report, rows, strings, text, unique
+from runtime import choice, cli, report, rows, strings, text, unique
 
 
 def analyze(data):
-    advisory = obj(data.get("advisory"), "advisory")
-    inventory = obj(data.get("inventory"), "inventory")
-    advisory_id = text(advisory.get("id"), "advisory.id")
-    vendor = text(advisory.get("vendor"), "advisory.vendor").casefold()
-    product = text(advisory.get("product"), "advisory.product").casefold()
-    versions = set(strings(advisory.get("affected_versions"), "affected_versions"))
-    if not versions:
-        raise ValueError("affected_versions must contain explicitly verified versions")
-    source = text(advisory.get("source"), "advisory.source")
+    threat_id = text(data.get("threat_id"), "threat_id")
     exploitation = choice(
-        advisory.get("exploitation"),
-        ["observed", "not_reported", "unknown"],
-        "exploitation",
+        data.get("exploitation"), ["active", "not_reported", "unknown"], "exploitation"
     )
-    scope = text(inventory.get("scope"), "inventory.scope")
-    assets = rows(inventory.get("assets"), "inventory.assets")
+    assets = rows(data.get("assets"), "assets")
     unique(assets)
     findings = []
     for asset in assets:
-        asset_vendor = text(asset.get("vendor"), "asset.vendor").casefold()
-        asset_product = text(asset.get("product"), "asset.product").casefold()
-        if (asset_vendor, asset_product) != (vendor, product):
-            continue
-        version = asset.get("version")
-        if version is not None:
-            version = text(version, "asset.version")
+        affected = choice(
+            asset.get("affected"), ["yes", "no", "unknown"], "asset.affected"
+        )
         exposure = choice(
-            asset.get("exposure", "unknown"),
-            ["internet", "internal", "unknown"],
-            "asset.exposure",
+            asset.get("exposure"), ["internet", "internal", "unknown"], "asset.exposure"
         )
-        status = (
-            "version_unknown"
-            if version is None
-            else "affected_version_match"
-            if version in versions
-            else "version_not_listed"
+        criticality = choice(
+            asset.get("criticality"),
+            ["high", "standard", "unknown"],
+            "asset.criticality",
         )
-        priority = "verify"
-        if status == "affected_version_match":
-            priority = (
-                "expedite"
-                if exploitation == "observed" or exposure == "internet"
-                else "review"
+        refs = strings(asset.get("evidence_ids"), "asset.evidence_ids")
+        if affected in ("yes", "no") and not refs:
+            raise ValueError("a known affected state requires evidence_ids")
+        if affected == "no":
+            priority, reason = (
+                "verify_non_applicability",
+                "Caller reports this asset is not affected.",
+            )
+        elif affected == "unknown":
+            priority, reason = "investigate_exposure", "Affected status is unresolved."
+        elif exploitation == "active":
+            priority, reason = (
+                "urgent_review",
+                "Confirmed affected asset and reported active exploitation.",
+            )
+        elif "unknown" in (exposure, criticality, exploitation):
+            priority, reason = (
+                "resolve_missing_facts",
+                "Affected asset has unresolved prioritization facts.",
+            )
+        elif exposure == "internet" and criticality == "high":
+            priority, reason = (
+                "urgent_review",
+                "Affected, internet-exposed asset with high business criticality.",
+            )
+        elif exposure == "internet" or criticality == "high":
+            priority, reason = (
+                "expedited_review",
+                "Affected asset is internet exposed or has high criticality.",
+            )
+        else:
+            priority, reason = (
+                "scheduled_review",
+                "Affected internal asset with standard criticality; exploitation not reported.",
             )
         findings.append(
             {
-                "asset": asset["id"],
-                "version": version,
-                "status": status,
+                "asset_id": asset["id"],
+                "priority": priority,
+                "reason": reason,
+                "affected": affected,
                 "exposure": exposure,
-                "review_priority": priority,
-                "evidence": [f"inventory:{asset['id']}", source],
+                "criticality": criticality,
+                "evidence_ids": refs,
             }
         )
-    matches = sum(f["status"] == "affected_version_match" for f in findings)
     return report(
-        "Threat Intelligence Agent",
+        "Threat Prioritization Agent",
         {
-            "advisory": advisory_id,
-            "scope": scope,
-            "assets_examined": len(assets),
-            "product_candidates": len(findings),
-            "affected_version_matches": matches,
-            "assessment": "potential_exposure" if matches else "inconclusive",
+            "threat_id": threat_id,
+            "assets": len(assets),
+            "exploitation": exploitation,
+            "policy": "example-matrix-v1",
         },
         findings,
         [
-            "Exact vendor/product and exact version matching only; no aliases, ranges, backport or reachability analysis.",
-            "A listed vulnerable version does not prove exploitability or compromise; a non-listed version is not confirmed safe.",
-            "The input snapshot is not independently verified. Inventory completeness and source freshness are unknown.",
-            "Review priority is a transparent example heuristic, not CVSS, SSVC or a remediation SLA.",
+            "This is an original illustrative matrix, not CERT/CC SSVC, CVSS or an organizational severity policy.",
+            "Input evidence references are preserved but are not retrieved or independently authenticated.",
+            "Not reported does not establish that exploitation is absent. Unknown facts never become a low-risk assumption.",
+            "Priorities carry no automatic patch deadline. Controls, business impact and policy-specific obligations need review.",
         ],
         [
-            "Verify advisory scope, version ranges and exploitation evidence against primary sources.",
-            "Check runtime version, configuration, reachability and mitigations for each candidate.",
-            "Record missing inventory coverage and assign an owner to unresolved exposure.",
+            "Validate exposure, exploitation and business-criticality facts with dated evidence.",
+            "Have the asset owner assign a remediation target under the applicable policy.",
+            "Reassess when exploitation, exposure, evidence quality or control effectiveness changes.",
         ],
     )
 
